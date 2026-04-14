@@ -32,7 +32,7 @@ df["genres"] = df["genre_ids"].apply(lambda ids: [genre_dict[i] for i in ids])
 # df = df.drop(columns=["genre_ids"])
 
 #Ver primeras filas
-print(df.head())
+#print(df.head())
 
 #Guardar CSV
 df.to_csv("peliculas.csv", index=False)
