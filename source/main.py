@@ -15,6 +15,7 @@ mapa_generos = {
 
     "romance": 10749,
     "romántica": 10749,
+    "romantica": 10749,
     "amor": 10749,
 
     "terror": 27,
@@ -24,6 +25,17 @@ mapa_generos = {
     "drama": 18,
     "dramática": 18
 }
+
+def limpiar_texto_actor(texto):
+    if not texto:
+        return texto
+
+    basura = ["que", "no", "esté", "este", "sea", "salga", "aparezca", "en"]
+    palabras = texto.split()
+    palabras_limpias = [p for p in palabras if p not in basura]
+
+    return " ".join(palabras_limpias)
+
 
 def main():
     while True:
@@ -41,11 +53,39 @@ def main():
         # 🎭 NLP actores
         incluir_actor, excluir_actor = interpretar_actores(user_input)
 
+        # 🔥 FALLBACK INCLUIR
+        if not incluir_actor:
+            if "de" in user_input:
+                incluir_actor = user_input.split("de")[-1].strip()
+            else:
+                palabras = user_input.split()
+                if len(palabras) >= 2:
+                    incluir_actor = " ".join(palabras[-2:])
+
+        # 🔥 FALLBACK EXCLUIR
+        if not excluir_actor:
+            if "sin" in user_input:
+                excluir_actor = user_input.split("sin")[-1].strip()
+            elif "no" in user_input:
+                excluir_actor = user_input.split("no")[-1].strip()
+
+        # 🔥 LIMPIEZA CLAVE
+        incluir_actor = limpiar_texto_actor(incluir_actor)
+        excluir_actor = limpiar_texto_actor(excluir_actor)
+
+        # 🔎 DEBUG (muy útil)
+        #print("👉 incluir_actor:", incluir_actor)
+        #print("👉 excluir_actor:", excluir_actor)
+
+        # 🔎 BUSCAR IDS
         if incluir_actor:
             actor_incluir_id = recomendador.buscar_actor(incluir_actor)
 
         if excluir_actor:
             actor_excluir_id = recomendador.buscar_actor(excluir_actor)
+
+        #print("👉 ID incluir:", actor_incluir_id)
+        #print("👉 ID excluir:", actor_excluir_id)
 
         # ========================
         # CONSULTA API
@@ -65,25 +105,50 @@ def main():
 
         else:
             print("No entendí tu búsqueda 😅")
-            continue   # 🔥 vuelve a preguntar automáticamente
+            continue
 
         # ========================
         # PROCESAR
         # ========================
 
-        if data and data["results"]:
+        if data and "results" in data and len(data["results"]) > 0:
             data_genres = recomendador.obtener_generos()
             df = recomendador.crear_dataframe(data)
             df = recomendador.mapear_generos(df, data_genres)
             df = recomendador.limpiar_y_ordenar(df)
 
-            print("\n🎬 Te recomiendo:\n")
+            # 🔥 CACHE DEL CAST (clave)
+            cache_cast = {}
 
-            for _, row in df.head(5).iterrows():
-                titulo = row["title"] if row["title"] else row["original_title"]
-                anio = row["release_date"][:4] if row["release_date"] else "N/A"
+            def obtener_cast(movie_id):
+                if movie_id not in cache_cast:
+                    cache_cast[movie_id] = recomendador.obtener_cast_pelicula(movie_id)
+                return cache_cast[movie_id]
 
-                print(f"""
+            # 🔥 FILTRO CORRECTO
+            df = df[df["id"].apply(
+                lambda movie_id: (
+                    (actor_incluir_id in obtener_cast(movie_id) if actor_incluir_id else True)
+                    and
+                    (actor_excluir_id not in obtener_cast(movie_id) if actor_excluir_id else True)
+                )
+            )]
+
+            if df.empty:
+                print("😅 No encontré resultados con esos filtros")
+            else:
+                print("\n🎬 Te recomiendo:\n")
+
+                for _, row in df.head(5).iterrows():
+                    titulo_es = row["title"]
+                    titulo_original = row["original_title"]
+                    if titulo_es != titulo_original:
+                         titulo = f"{titulo_es} ({titulo_original})"
+                    else:
+                        titulo = titulo_es
+                    anio = row["release_date"][:4] if row["release_date"] else "N/A"
+
+                    print(f"""
 🎬 {titulo} ({anio})
 ⭐ {row['vote_average']}/10
 📖 {row['overview']}
@@ -99,11 +164,15 @@ def main():
             seguir = input("\n¿Querés hacer otra consulta? (si/no): ").lower()
 
             if seguir in ["si", "sí"]:
-                break   # vuelve al inicio del while principal
+                break
 
             elif seguir == "no":
                 print("👋 ¡Hasta luego!")
-                return  # termina el programa
+                return
 
             else:
                 print("Por favor respondé 'si' o 'no'")
+
+
+if __name__ == "__main__":
+    main()
