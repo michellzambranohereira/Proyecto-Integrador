@@ -3,6 +3,8 @@ from nlp_spacy import interpretar_actores
 import recomendador
 import requests
 
+#Diccionario de palabras clave para detectar géneros
+
 mapa_generos = {
     "accion": 28,
     "acción": 28,
@@ -26,6 +28,8 @@ mapa_generos = {
     "dramática": 18
 }
 
+#Función para limpiar palabras comunes de los nombres de actores
+
 def limpiar_texto_actor(texto):
     if not texto:
         return texto
@@ -36,6 +40,7 @@ def limpiar_texto_actor(texto):
 
     return " ".join(palabras_limpias)
 
+#Función principal del programa
 
 def main():
     while True:
@@ -45,15 +50,15 @@ def main():
         actor_incluir_id = None
         actor_excluir_id = None
 
-        # 🎯 detectar género
+        #Detección del género
         for palabra, genero_id in mapa_generos.items():
             if palabra in user_input:
                 genero_detectado = genero_id
 
-        # 🎭 NLP actores
+        #Detección de actores a incluir y excluir
         incluir_actor, excluir_actor = interpretar_actores(user_input)
 
-        # 🔥 FALLBACK INCLUIR
+        #Detección de actores a incluir (si no se detectó con NLP)
         if not incluir_actor:
             if "de" in user_input:
                 incluir_actor = user_input.split("de")[-1].strip()
@@ -62,35 +67,35 @@ def main():
                 if len(palabras) >= 2:
                     incluir_actor = " ".join(palabras[-2:])
 
-        # 🔥 FALLBACK EXCLUIR
+        #Detección de actores a excluir (si no se detectó con NLP)
         if not excluir_actor:
             if "sin" in user_input:
                 excluir_actor = user_input.split("sin")[-1].strip()
             elif "no" in user_input:
                 excluir_actor = user_input.split("no")[-1].strip()
 
-        # 🔥 LIMPIEZA CLAVE
+        #Limpieza de texto de actores para mejorar búsqueda
         incluir_actor = limpiar_texto_actor(incluir_actor)
         excluir_actor = limpiar_texto_actor(excluir_actor)
 
-        # 🔎 DEBUG (muy útil)
+        #DEBUG que permite ver qué si detectó correctamente los actores a incluir y excluir
         #print("👉 incluir_actor:", incluir_actor)
         #print("👉 excluir_actor:", excluir_actor)
 
-        # 🔎 BUSCAR IDS
+        #Búsqueda de IDs de actores en la API
         if incluir_actor:
             actor_incluir_id = recomendador.buscar_actor(incluir_actor)
 
         if excluir_actor:
             actor_excluir_id = recomendador.buscar_actor(excluir_actor)
 
+        #DEBUG que permite ver qué IDs de actores se encontraron para incluir y excluir
         #print("👉 ID incluir:", actor_incluir_id)
         #print("👉 ID excluir:", actor_excluir_id)
 
-        # ========================
-        # CONSULTA API
-        # ========================
-
+       
+        #Consulta a la API según los filtros detectados
+       
         data = None
 
         if genero_detectado and actor_incluir_id:
@@ -107,9 +112,9 @@ def main():
             print("No entendí tu búsqueda 😅")
             continue
 
-        # ========================
-        # PROCESAR
-        # ========================
+        
+        #Procesamiento de resultados y aplicación de filtros adicionales (exclusión de actor)
+        
 
         if data and "results" in data and len(data["results"]) > 0:
             data_genres = recomendador.obtener_generos()
@@ -117,7 +122,7 @@ def main():
             df = recomendador.mapear_generos(df, data_genres)
             df = recomendador.limpiar_y_ordenar(df)
 
-            # 🔥 CACHE DEL CAST (clave)
+            #Filtro de exclusión de actor con caching para optimizar llamadas a la API al obtener el cast de cada película solo una vez por película
             cache_cast = {}
 
             def obtener_cast(movie_id):
@@ -125,7 +130,7 @@ def main():
                     cache_cast[movie_id] = recomendador.obtener_cast_pelicula(movie_id)
                 return cache_cast[movie_id]
 
-            # 🔥 FILTRO CORRECTO
+            #Aplicación de filtro de exclusión de actor utilizando la función obtener_cast con caching para optimizar llamadas a la API
             df = df[df["id"].apply(
                 lambda movie_id: (
                     (actor_incluir_id in obtener_cast(movie_id) if actor_incluir_id else True)
@@ -156,9 +161,9 @@ def main():
         else:
             print("No encontré resultados 😅")
 
-        # ========================
-        # CONTINUAR O SALIR
-        # ========================
+        
+        #Pregunta al usuario si quiere hacer otra consulta o salir del programa
+        
 
         while True:
             seguir = input("\n¿Querés hacer otra consulta? (si/no): ").lower()
