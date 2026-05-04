@@ -59,7 +59,8 @@ if st.session_state.busqueda_realizada:
         "terror": 27, "miedo": 27, "horror": 27, "susto": 27,
         "suspenso": 9648, "misterio": 9648, "detective": 9648,"investigacion": 9648,
         "thriller": 53, "tension": 53, "tenso": 53, "intriga": 53,
-        "policial": 80, "crimen": 80, "asesinato": 80, "mafia": 80
+        "policial": 80, "crimen": 80, "asesinato": 80, "mafia": 80,
+        "ciencia ficcion": 878, "ciencia ficción": 878, "sci-fi": 878, "espacio": 878, "extraterrestres": 878, "alien": 878, "aliens": 878, "tecnologia": 878
 
     }
 
@@ -71,7 +72,8 @@ if st.session_state.busqueda_realizada:
         27: "terror",
         9648: "suspenso",
         53: "thriller",
-        80: "policial"
+        80: "policial",
+        878: "ciencia ficción"
     }
 
     genero_detectado = None

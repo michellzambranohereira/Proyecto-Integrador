@@ -40,7 +40,17 @@ mapa_generos = {
     "policial": 80,
     "crimen": 80,
     "asesinato": 80,
-    "mafia": 80
+    "mafia": 80,
+
+    "ciencia ficcion": 878,
+    "ciencia ficción": 878,
+    "sci-fi": 878,
+    "espacio": 878,
+    "extraterrestres": 878,
+    "alien": 878,
+    "aliens": 878,
+    "tecnologia": 878,
+    "tecnología": 878
 
 }
 
