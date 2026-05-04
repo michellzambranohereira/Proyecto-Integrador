@@ -9,17 +9,14 @@ st.set_page_config(page_title="Recomendador de Películas", layout="centered")
 st.title("🎬 Recomendador de Películas")
 st.write("¿Qué te gustaría ver hoy? 🍿")
 
-# ========================
-# 🔥 FUNCIONES
-# ========================
+#Funciones
 
 def reset_busqueda():
     st.session_state.busqueda_realizada = False
     st.session_state.query = ""
 
-# ========================
-# 🔥 SESSION STATE
-# ========================
+
+#Sesion
 
 if "busqueda_realizada" not in st.session_state:
     st.session_state.busqueda_realizada = False
@@ -27,22 +24,20 @@ if "busqueda_realizada" not in st.session_state:
 if "query" not in st.session_state:
     st.session_state.query = ""
 
-# ========================
-# INPUT
-# ========================
+#Input del usuario
+
 
 user_input = st.text_input(" ", key="query")
 
-# ========================
-# BOTÓN BUSCAR
-# ========================
+
+#Botón de búsqueda
 
 if st.button("Buscar"):
     st.session_state.busqueda_realizada = True
 
-# ========================
-# LÓGICA PRINCIPAL
-# ========================
+
+#Lógica de búsqueda y resultados
+
 
 if st.session_state.busqueda_realizada:
 
@@ -52,16 +47,20 @@ if st.session_state.busqueda_realizada:
 
     user_input = user_input.lower()
 
-    # ========================
-    # 🎯 DETECCIÓN DE GÉNERO
-    # ========================
+    
+    #Detectar género con NLP (mapa de palabras clave a IDs de género)
+    
 
     mapa_generos = {
         "accion": 28, "acción": 28, "peleas": 28, "explosiones": 28,
         "comedia": 35, "divertido": 35, "divertida": 35, "graciosa": 35, "gracioso": 35, "humor": 35, "risa": 35,
         "triste": 18, "drama": 18, "dramática": 18, "emocional": 18,
         "romance": 10749, "romántica": 10749, "romantica": 10749, "amor": 10749,
-        "terror": 27, "miedo": 27, "horror": 27, "susto": 27
+        "terror": 27, "miedo": 27, "horror": 27, "susto": 27,
+        "suspenso": 9648, "misterio": 9648, "detective": 9648,"investigacion": 9648,
+        "thriller": 53, "tension": 53, "tenso": 53, "intriga": 53,
+        "policial": 80, "crimen": 80, "asesinato": 80, "mafia": 80
+
     }
 
     generos_nombres = {
@@ -69,7 +68,10 @@ if st.session_state.busqueda_realizada:
         35: "comedia",
         18: "drama",
         10749: "romance",
-        27: "terror"
+        27: "terror",
+        9648: "suspenso",
+        53: "thriller",
+        80: "policial"
     }
 
     genero_detectado = None
@@ -78,9 +80,9 @@ if st.session_state.busqueda_realizada:
         if palabra in user_input:
             genero_detectado = genero_id
 
-    # ========================
-    # 🎭 NLP ACTORES
-    # ========================
+    
+    #NLP para detectar actores a incluir o excluir (ej: "con Tom Hanks", "sin Scarlett Johansson")
+    
 
     actor_incluir_id = None
     actor_excluir_id = None
@@ -97,9 +99,9 @@ if st.session_state.busqueda_realizada:
         if not actor_excluir_id:
             excluir_actor = None
 
-    # ========================
-    # CONSULTA API
-    # ========================
+    
+    #Consultar API
+    
 
     data = None
 
@@ -117,16 +119,20 @@ if st.session_state.busqueda_realizada:
         st.error("Hmm… no terminé de entender 😅 ¿podés intentar de otra forma?")
         st.stop()
 
-    # ========================
-    # PROCESAMIENTO
-    # ========================
+    #Normalizar datos (si viene de búsqueda por actor, la API devuelve un formato distinto)
+    if data and "cast" in data:
+        data = {"results": data["cast"]}
+
+   
+    #Filtrar resultados por exclusión de actor (si se detectó)
+
 
     if data and "results" in data and len(data["results"]) > 0:
 
         df = recomendador.crear_dataframe(data)
         df = recomendador.limpiar_y_ordenar(df)
 
-        # 🔥 CACHE CAST
+        #Computar el cast de cada película solo una vez y cachearlo para evitar múltiples llamadas a la API
         cache_cast = {}
 
         def obtener_cast(movie_id):
@@ -134,18 +140,16 @@ if st.session_state.busqueda_realizada:
                 cache_cast[movie_id] = recomendador.obtener_cast_pelicula(movie_id)
             return cache_cast[movie_id]
 
-        # 🔥 FILTROS
+        #Filtrar películas que no tengan al actor a excluir en su cast
         df = df[df["id"].apply(
             lambda movie_id: (
-                (actor_incluir_id in obtener_cast(movie_id) if actor_incluir_id else True)
-                and
                 (actor_excluir_id not in obtener_cast(movie_id) if actor_excluir_id else True)
             )
         )]
 
-        # ========================
-        # 🧠 MENSAJE INTELIGENTE
-        # ========================
+        
+        #Mensaje personalizado según lo que se detectó en la consulta del usuario
+        
 
         mensaje = "😎 Tengo justo lo que buscás, mirá esto:"
 
@@ -167,14 +171,17 @@ if st.session_state.busqueda_realizada:
             genero_nombre = generos_nombres.get(genero_detectado, "")
             mensaje = f"😎 Buscabas algo de {genero_nombre}, mirá esto:"
 
-        # ========================
-        # RESULTADOS
-        # ========================
+       
+        #Resultados
+        
 
         if df.empty:
             st.warning("😅 No encontré resultados con esos filtros")
         else:
             st.subheader(mensaje)
+
+            #Mostrar solo 5 resultados aleatorios para no saturar la pantalla (si hay más de 5)
+            df = df.sample(frac=1).reset_index(drop=True)
 
             for _, row in df.head(5).iterrows():
                 titulo = row["title"] or row["original_title"]
@@ -193,8 +200,10 @@ if st.session_state.busqueda_realizada:
     else:
         st.error("No encontré resultados 😅")
 
-    # ========================
-    # BOTÓN RESET
-    # ========================
+    
+    #Botón para nueva búsqueda (resetea el estado de la aplicación)
+
 
     st.button("🔄 Nueva búsqueda", on_click=reset_busqueda)
+#streamlit run app.py
+#streamlit run "C:\Users\usuario\OneDrive\Documentos\Proyecto Final\Proyecto-Integrador\source\app.py"

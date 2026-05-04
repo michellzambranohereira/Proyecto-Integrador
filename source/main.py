@@ -25,10 +25,26 @@ mapa_generos = {
     "horror": 27,
 
     "drama": 18,
-    "dramática": 18
+    "dramática": 18,
+
+    "suspenso": 9648,
+    "misterio": 9648,
+    "detective": 9648,
+    "investigacion": 9648,
+
+    "thriller": 53,
+    "tension": 53,
+    "tenso": 53,
+    "intriga": 53,
+
+    "policial": 80,
+    "crimen": 80,
+    "asesinato": 80,
+    "mafia": 80
+
 }
 
-#Función para limpiar palabras comunes de los nombres de actores
+# Limpieza de texto de actores
 
 def limpiar_texto_actor(texto):
     if not texto:
@@ -40,7 +56,9 @@ def limpiar_texto_actor(texto):
 
     return " ".join(palabras_limpias)
 
-#Función principal del programa
+# ========================
+# FUNCIÓN PRINCIPAL
+# ========================
 
 def main():
     while True:
@@ -50,15 +68,15 @@ def main():
         actor_incluir_id = None
         actor_excluir_id = None
 
-        #Detección del género
+        # 🎯 Detectar género
         for palabra, genero_id in mapa_generos.items():
             if palabra in user_input:
                 genero_detectado = genero_id
 
-        #Detección de actores a incluir y excluir
+        # 🎭 NLP actores
         incluir_actor, excluir_actor = interpretar_actores(user_input)
 
-        #Detección de actores a incluir (si no se detectó con NLP)
+        # Fallback incluir
         if not incluir_actor:
             if "de" in user_input:
                 incluir_actor = user_input.split("de")[-1].strip()
@@ -67,40 +85,33 @@ def main():
                 if len(palabras) >= 2:
                     incluir_actor = " ".join(palabras[-2:])
 
-        #Detección de actores a excluir (si no se detectó con NLP)
+        # Fallback excluir
         if not excluir_actor:
             if "sin" in user_input:
                 excluir_actor = user_input.split("sin")[-1].strip()
             elif "no" in user_input:
                 excluir_actor = user_input.split("no")[-1].strip()
 
-        #Limpieza de texto de actores para mejorar búsqueda
+        # Limpieza
         incluir_actor = limpiar_texto_actor(incluir_actor)
         excluir_actor = limpiar_texto_actor(excluir_actor)
 
-        #DEBUG que permite ver qué si detectó correctamente los actores a incluir y excluir
-        #print("👉 incluir_actor:", incluir_actor)
-        #print("👉 excluir_actor:", excluir_actor)
-
-        #Búsqueda de IDs de actores en la API
+        # IDs
         if incluir_actor:
             actor_incluir_id = recomendador.buscar_actor(incluir_actor)
 
         if excluir_actor:
             actor_excluir_id = recomendador.buscar_actor(excluir_actor)
 
-        #DEBUG que permite ver qué IDs de actores se encontraron para incluir y excluir
-        #print("👉 ID incluir:", actor_incluir_id)
-        #print("👉 ID excluir:", actor_excluir_id)
+        # ========================
+        # CONSULTA API
+        # ========================
 
-       
-        #Consulta a la API según los filtros detectados
-       
         data = None
 
         if genero_detectado and actor_incluir_id:
-            url = f"https://api.themoviedb.org/3/discover/movie?api_key={API_KEY}&with_genres={genero_detectado}&with_cast={actor_incluir_id}&language=es-ES"
-            data = requests.get(url).json()
+            # 🔥 CAMBIO: usar actor como base (más confiable)
+            data = recomendador.peliculas_por_actor(actor_incluir_id)
 
         elif genero_detectado:
             data = recomendador.obtener_peliculas_por_genero(genero_detectado)
@@ -112,17 +123,26 @@ def main():
             print("No entendí tu búsqueda 😅")
             continue
 
-        
-        #Procesamiento de resultados y aplicación de filtros adicionales (exclusión de actor)
-        
+        # 🔥 NORMALIZAR RESPUESTA (clave)
+        if data and "cast" in data:
+            data = {"results": data["cast"]}
+
+        # ========================
+        # PROCESAMIENTO
+        # ========================
 
         if data and "results" in data and len(data["results"]) > 0:
+
+            print("👉 ENTRE AL BLOQUE DE RESULTADOS")
+
             data_genres = recomendador.obtener_generos()
             df = recomendador.crear_dataframe(data)
             df = recomendador.mapear_generos(df, data_genres)
             df = recomendador.limpiar_y_ordenar(df)
 
-            #Filtro de exclusión de actor con caching para optimizar llamadas a la API al obtener el cast de cada película solo una vez por película
+            print("Cantidad total ANTES de filtros:", len(df))
+
+            # 🔥 CACHE CAST
             cache_cast = {}
 
             def obtener_cast(movie_id):
@@ -130,27 +150,36 @@ def main():
                     cache_cast[movie_id] = recomendador.obtener_cast_pelicula(movie_id)
                 return cache_cast[movie_id]
 
-            #Aplicación de filtro de exclusión de actor utilizando la función obtener_cast con caching para optimizar llamadas a la API
+            # 🔥 FILTROS
             df = df[df["id"].apply(
                 lambda movie_id: (
-                    (actor_incluir_id in obtener_cast(movie_id) if actor_incluir_id else True)
+                    # ❗ SOLO aplicar inclusión si NO vino de actor
+                    (actor_incluir_id in obtener_cast(movie_id) if (actor_incluir_id and not incluir_actor) else True)
                     and
                     (actor_excluir_id not in obtener_cast(movie_id) if actor_excluir_id else True)
                 )
             )]
 
+            print("Cantidad DESPUÉS de filtros:", len(df))
+
             if df.empty:
                 print("😅 No encontré resultados con esos filtros")
             else:
-                print("\n🎬 Te recomiendo:\n")
+                print("\n🎬 Te dejo algunas opciones que podrían gustarte:\n")
+
+                # 🔥 MEZCLA REAL
+                df = df.sample(frac=1).reset_index(drop=True)
 
                 for _, row in df.head(5).iterrows():
+
                     titulo_es = row["title"]
                     titulo_original = row["original_title"]
+
                     if titulo_es != titulo_original:
-                         titulo = f"{titulo_es} ({titulo_original})"
+                        titulo = f"{titulo_es} ({titulo_original})"
                     else:
                         titulo = titulo_es
+
                     anio = row["release_date"][:4] if row["release_date"] else "N/A"
 
                     print(f"""
@@ -161,20 +190,18 @@ def main():
         else:
             print("No encontré resultados 😅")
 
-        
-        #Pregunta al usuario si quiere hacer otra consulta o salir del programa
-        
+        # ========================
+        # CONTINUAR
+        # ========================
 
         while True:
             seguir = input("\n¿Querés hacer otra consulta? (si/no): ").lower()
 
             if seguir in ["si", "sí"]:
                 break
-
             elif seguir == "no":
                 print("👋 ¡Hasta luego!")
                 return
-
             else:
                 print("Por favor respondé 'si' o 'no'")
 
