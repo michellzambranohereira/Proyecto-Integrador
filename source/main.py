@@ -54,7 +54,7 @@ mapa_generos = {
 
 }
 
-# Limpieza de texto de actores
+#Limpieza de texto de actores
 
 def limpiar_texto_actor(texto):
     if not texto:
@@ -66,9 +66,9 @@ def limpiar_texto_actor(texto):
 
     return " ".join(palabras_limpias)
 
-# ========================
-# FUNCIÓN PRINCIPAL
-# ========================
+
+#Función principal
+
 
 def main():
     while True:
@@ -78,15 +78,15 @@ def main():
         actor_incluir_id = None
         actor_excluir_id = None
 
-        # 🎯 Detectar género
+        #Detectar género
         for palabra, genero_id in mapa_generos.items():
             if palabra in user_input:
                 genero_detectado = genero_id
 
-        # 🎭 NLP actores
+        #NLP actores
         incluir_actor, excluir_actor = interpretar_actores(user_input)
 
-        # Fallback incluir
+        #Fallback incluir
         if not incluir_actor:
             if "de" in user_input:
                 incluir_actor = user_input.split("de")[-1].strip()
@@ -95,32 +95,32 @@ def main():
                 if len(palabras) >= 2:
                     incluir_actor = " ".join(palabras[-2:])
 
-        # Fallback excluir
+        #Fallback excluir
         if not excluir_actor:
             if "sin" in user_input:
                 excluir_actor = user_input.split("sin")[-1].strip()
             elif "no" in user_input:
                 excluir_actor = user_input.split("no")[-1].strip()
 
-        # Limpieza
+        #Limpieza
         incluir_actor = limpiar_texto_actor(incluir_actor)
         excluir_actor = limpiar_texto_actor(excluir_actor)
 
-        # IDs
+        #IDs
         if incluir_actor:
             actor_incluir_id = recomendador.buscar_actor(incluir_actor)
 
         if excluir_actor:
             actor_excluir_id = recomendador.buscar_actor(excluir_actor)
 
-        # ========================
-        # CONSULTA API
-        # ========================
+        
+        #Consulta API
+        
 
         data = None
 
         if genero_detectado and actor_incluir_id:
-            # 🔥 CAMBIO: usar actor como base (más confiable)
+            #CAMBIO: usar actor como base
             data = recomendador.peliculas_por_actor(actor_incluir_id)
 
         elif genero_detectado:
@@ -133,13 +133,13 @@ def main():
             print("No entendí tu búsqueda 😅")
             continue
 
-        # 🔥 NORMALIZAR RESPUESTA (clave)
+        #Normalizar
         if data and "cast" in data:
             data = {"results": data["cast"]}
 
-        # ========================
-        # PROCESAMIENTO
-        # ========================
+
+        #Procesamiento
+
 
         if data and "results" in data and len(data["results"]) > 0:
 
@@ -152,7 +152,7 @@ def main():
 
             print("Cantidad total ANTES de filtros:", len(df))
 
-            # 🔥 CACHE CAST
+            #Cache cast
             cache_cast = {}
 
             def obtener_cast(movie_id):
@@ -160,10 +160,10 @@ def main():
                     cache_cast[movie_id] = recomendador.obtener_cast_pelicula(movie_id)
                 return cache_cast[movie_id]
 
-            # 🔥 FILTROS
+            #Filtros
             df = df[df["id"].apply(
                 lambda movie_id: (
-                    # ❗ SOLO aplicar inclusión si NO vino de actor
+                    #SOLO aplicar inclusión si NO vino de actor
                     (actor_incluir_id in obtener_cast(movie_id) if (actor_incluir_id and not incluir_actor) else True)
                     and
                     (actor_excluir_id not in obtener_cast(movie_id) if actor_excluir_id else True)
@@ -177,7 +177,7 @@ def main():
             else:
                 print("\n🎬 Te dejo algunas opciones que podrían gustarte:\n")
 
-                # 🔥 MEZCLA REAL
+                #Mezclar resultados para no mostrar siempre los mismos primeros
                 df = df.sample(frac=1).reset_index(drop=True)
 
                 for _, row in df.head(5).iterrows():
@@ -200,9 +200,8 @@ def main():
         else:
             print("No encontré resultados 😅")
 
-        # ========================
-        # CONTINUAR
-        # ========================
+        #Consulta para seguir buscando
+
 
         while True:
             seguir = input("\n¿Querés hacer otra consulta? (si/no): ").lower()

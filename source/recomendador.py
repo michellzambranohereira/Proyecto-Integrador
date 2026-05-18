@@ -5,9 +5,8 @@ import pandas as pd
 
 API_KEY = "903d94755233e0bd7a4a04e0de529bab"
 
-# ========================
-# FUNCIONES API
-# ========================
+#Funciones API
+
 
 def obtener_peliculas_por_genero(genero_id):
     url = f"https://api.themoviedb.org/3/discover/movie?api_key={API_KEY}&with_genres={genero_id}&language=es-ES"
@@ -39,9 +38,7 @@ def obtener_generos():
     url = f"https://api.themoviedb.org/3/genre/movie/list?api_key={API_KEY}&language=es-ES"
     return requests.get(url).json()
 
-# ========================
-# PROCESAMIENTO
-# ========================
+#Procesamiento de datos
 
 def crear_dataframe(data):
     df = pd.DataFrame(data["results"])

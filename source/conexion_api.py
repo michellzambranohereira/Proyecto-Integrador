@@ -5,7 +5,7 @@ import pandas as pd
 #API Key
 API_KEY = "903d94755233e0bd7a4a04e0de529bab"
 
-#URL de TMDB (películas)
+#ur
 url = f"https://api.themoviedb.org/3/movie/popular?api_key={API_KEY}&language=es-ES"
 
 response = requests.get(url)

@@ -16,7 +16,7 @@ def reset_busqueda():
     st.session_state.query = ""
 
 
-#Sesion
+#Sesión
 
 if "busqueda_realizada" not in st.session_state:
     st.session_state.busqueda_realizada = False
@@ -60,7 +60,7 @@ if st.session_state.busqueda_realizada:
         "suspenso": 9648, "misterio": 9648, "detective": 9648,"investigacion": 9648,
         "thriller": 53, "tension": 53, "tenso": 53, "intriga": 53,
         "policial": 80, "crimen": 80, "asesinato": 80, "mafia": 80,
-        "ciencia ficcion": 878, "ciencia ficción": 878, "sci-fi": 878, "espacio": 878, "extraterrestres": 878, "alien": 878, "aliens": 878, "tecnologia": 878
+        "ciencia ficcion": 878, "ciencia ficción": 878, "sci-fi": 878
 
     }
 
@@ -83,7 +83,7 @@ if st.session_state.busqueda_realizada:
             genero_detectado = genero_id
 
     
-    #NLP para detectar actores a incluir o excluir (ej: "con Tom Hanks", "sin Scarlett Johansson")
+    #NLP para detectar actores a incluir o excluir (ejemplo: "con Tom Hanks", "sin Scarlett Johansson")
     
 
     actor_incluir_id = None
@@ -118,10 +118,11 @@ if st.session_state.busqueda_realizada:
         data = recomendador.peliculas_por_actor(actor_incluir_id)
 
     else:
-        st.error("Hmm… no terminé de entender 😅 ¿podés intentar de otra forma?")
+        st.error("Hmm… no terminé de entender 😅 ¿podés intentar de nuevo?")
         st.stop()
 
     #Normalizar datos (si viene de búsqueda por actor, la API devuelve un formato distinto)
+
     if data and "cast" in data:
         data = {"results": data["cast"]}
 
