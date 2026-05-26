@@ -44,6 +44,8 @@ pip install -r requirements.txt
 
 streamlit run app.py o streamlit run source/app.py
 
+4. Puede hacerle preguntas al chatbot en lenguaje natural, ejemplos: ''quiero ver algo divertido'', ''quiero ver algo de Tom Cruise'', ''quiero ver algo de Robert DeNiro pero que no esté Al Pacino''. Son solo ejemplos, puede usar otros actores y otras palabras para el género. Puede que ante consultas ambiguas o poco claras no responda, a su vez, si el nombre del actor/actriz está mal escrito, puede que no responda tampoco.
+
 Estado del proyecto:
 
 Proyecto desarrollado como MVP (Producto Mínimo Viable), con posibilidad de incorporar mejoras futuras relacionadas con modelos de lenguaje más avanzados y sistemas de recomendación más complejos.
